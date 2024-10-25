@@ -4,9 +4,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 # Load the datasets
-df_techniques_and_tactics = pd.read_csv("C:/Users/bangl/OneDrive/Máy tính/project30016/dada/Techniques_and_Tactics.csv")
-df_techniques_and_groups = pd.read_csv("C:/Users/bangl/OneDrive/Máy tính/project30016/dada/Techniques_and_Groups.csv")
-df_techniques_and_software = pd.read_csv("C:/Users/bangl/OneDrive/Máy tính/project30016/dada/Techniques_and_Software.csv")
+df_techniques_and_tactics = pd.read_csv("/Users/sarthakpradhan/Desktop/UNI/ICT-Innovation-Software/project30016/dada/Techniques_and_Tactics.csv")
+df_techniques_and_groups = pd.read_csv("/Users/sarthakpradhan/Desktop/UNI/ICT-Innovation-Software/project30016/dada/Techniques_and_Groups.csv")
+df_techniques_and_software = pd.read_csv("/Users/sarthakpradhan/Desktop/UNI/ICT-Innovation-Software/project30016/dada/Techniques_and_Software.csv")
 
 # Sidebar for modular navigation
 st.sidebar.title("Modular Threat Mapping Dashboard")
