@@ -1,91 +1,76 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.io as pio
-import random
+import plotly.graph_objects as go
 
-# Load datasets
-df_techniques_and_tactics = pd.read_csv("/Users/sarthakpradhan/Desktop/UNI/ICT-Innovation-Software/project30016/dada/Techniques_and_Tactics.csv")
-df_techniques_and_groups = pd.read_csv("/Users/sarthakpradhan/Desktop/UNI/ICT-Innovation-Software/project30016/dada/Techniques_and_Groups.csv")
-df_techniques_and_software = pd.read_csv("/Users/sarthakpradhan/Desktop/UNI/ICT-Innovation-Software/project30016/dada/Techniques_and_Software.csv")
+# Load the datasets
+df_techniques_and_tactics = pd.read_csv("data/Techniques_and_Tactics.csv")
+df_techniques_and_groups = pd.read_csv("data/Techniques_and_Groups.csv")
+df_techniques_and_software = pd.read_csv("data/Techniques_and_Software.csv")
 
 # Sidebar for modular navigation
 st.sidebar.title("Modular Threat Mapping Dashboard")
-selected_module = st.sidebar.selectbox("Select Module", ["Top Techniques", "Software Usage", "Adversary Group Analysis", "Relationship Analysis", "Combined Techniques, Groups, and Tactics"])
+selected_module = st.sidebar.selectbox("Select Module", ["Techniques and Tactics", "Techniques and Groups", "Techniques and Software"])
 
-# Initialize session state for selected techniques and groups
-if 'selected_techniques' not in st.session_state:
-    all_techniques = df_techniques_and_tactics['name'].unique()
-    st.session_state.selected_techniques = random.sample(list(all_techniques), 5)
-if 'default_groups' not in st.session_state:
-    unique_groups = df_techniques_and_groups['name_group'].unique()
-    st.session_state.default_groups = random.sample(list(unique_groups), 5)
-
-# Helper function to convert Plotly figure to a PDF file for download
-def get_pdf_download_link(fig, filename):
-    img_bytes = pio.to_image(fig, format='pdf')
-    return st.download_button(f"Download {filename} Visualization as PDF", img_bytes, f"{filename}.pdf", "application/pdf")
-
-# Top Techniques Visualization Module
-if selected_module == "Top Techniques":
-    st.title("Top Techniques Across Groups")
-    top_techniques = df_techniques_and_groups.groupby('target name').size().reset_index(name='count').sort_values(by='count', ascending=False).head(10)
-    fig_top = px.bar(top_techniques, x='target name', y='count', title="Top 10 Techniques", labels={'target name': 'Technique', 'count': 'Occurrences'})
-    st.plotly_chart(fig_top)
-    get_pdf_download_link(fig_top, "Top_Techniques")
-
-# Software Usage Visualization Module
-elif selected_module == "Software Usage":
-    st.title("Software Usage Across Techniques")
-    software_usage = df_techniques_and_software.groupby('name_software').size().reset_index(name='count').sort_values(by='count', ascending=False).head(10)
-    fig_software = px.bar(software_usage, x='name_software', y='count', title="Top 10 Software", labels={'name_software': 'Software', 'count': 'Occurrences'})
-    st.plotly_chart(fig_software)
-    get_pdf_download_link(fig_software, "Software_Usage")
-
-# Adversary Group Analysis Module
-elif selected_module == "Adversary Group Analysis":
-    st.title("Adversary Group Usage Across Techniques")
-    group_usage = df_techniques_and_groups.groupby('source name').size().reset_index(name='count').sort_values(by='count', ascending=False).head(10)
-    fig_group = px.bar(group_usage, x='source name', y='count', title="Top 10 Adversary Groups", labels={'source name': 'Adversary Group', 'count': 'Occurrences'})
-    st.plotly_chart(fig_group)
-    get_pdf_download_link(fig_group, "Group_Usage")
-
-# Relationship Analysis Module
-elif selected_module == "Relationship Analysis":
-    st.title("Relationship Between Techniques, Tactics, and Software")
-    selected_techniques = st.multiselect("Select techniques to compare (default 5 random):", options=all_techniques, default=st.session_state.selected_techniques)
-    st.session_state.selected_techniques = selected_techniques if selected_techniques else st.session_state.selected_techniques
-
-    filtered_tactics_data = df_techniques_and_tactics[df_techniques_and_tactics['name'].isin(st.session_state.selected_techniques)]
-    filtered_groups_data = df_techniques_and_groups[df_techniques_and_groups['target name'].isin(st.session_state.selected_techniques)]
-    filtered_software_data = df_techniques_and_software[df_techniques_and_software['name_technique'].isin(st.session_state.selected_techniques)]
-
-    fig_stacked = px.bar(filtered_tactics_data.groupby(['tactics', 'name']).size().reset_index(name='count'), x='tactics', y='count', color='name', title="Techniques Grouped by Tactics (Stacked Bar Chart)")
-    st.plotly_chart(fig_stacked)
-    get_pdf_download_link(fig_stacked, "Stacked_Data")
-
-    bar_data = filtered_groups_data.groupby(['target name', 'source name']).size().reset_index(name='count')
-    if not bar_data.empty:
-        fig_bar = px.bar(bar_data, x='target name', y='count', text='source name', color='source name', title="Techniques vs Adversary Groups (Bar Chart)")
-        st.plotly_chart(fig_bar)
-        get_pdf_download_link(fig_bar, "Bar_Data")
-
-    fig_treemap = px.treemap(filtered_software_data.groupby(['name_software', 'name_technique']).size().reset_index(name='count'), path=['name_software', 'name_technique'], values='count', color='count', color_continuous_scale=px.colors.sequential.Plasma, title="Techniques by Software (Treemap)")
-    fig_treemap.update_traces(textinfo='label+value')
-    st.plotly_chart(fig_treemap)
-    get_pdf_download_link(fig_treemap, "Treemap_Data")
-
-# Combined Techniques, Groups, and Tactics Module
-elif selected_module == "Combined Techniques, Groups, and Tactics":
-    st.title("Techniques Grouped by Groups and Tactics")
-    selected_groups = st.multiselect("Select groups to display:", options=unique_groups, default=st.session_state.default_groups)
+# Module 1: Techniques and Tactics
+if selected_module == "Techniques and Tactics":
+    st.title("Techniques and Tactics")
+    selected_tactic = st.sidebar.selectbox("Select Tactic", df_techniques_and_tactics['tactics'].unique())
     
-    if selected_groups:
-        combined_df = pd.merge(df_techniques_and_groups, df_techniques_and_tactics, left_on='name_technique', right_on='name', how='inner')
-        filtered_combined_data = combined_df[combined_df['name_group'].isin(selected_groups)]
-        aggregated_data = filtered_combined_data.groupby(['name_group', 'tactics']).size().reset_index(name='technique_count')
-        fig_combined = px.bar(aggregated_data, x='name_group', y='technique_count', color='tactics', title='Techniques by Group and Tactic', barmode='group', labels={'name_group': 'Group', 'technique_count': 'Number of Techniques', 'tactics': 'Tactic'})
-        st.plotly_chart(fig_combined)
-        get_pdf_download_link(fig_combined, "Combined_Data")
-    else:
-        st.warning("No groups selected. Please select a group to display the chart.")
+    # Use Pandas to filter the data based on the selected tactic
+    filtered_tactics_data = df_techniques_and_tactics[df_techniques_and_tactics['tactics'] == selected_tactic]
+    
+    # Aggregate data
+    techniques_count = filtered_tactics_data.groupby('name').size().reset_index(name='count')
+    
+    # Use Plotly to create a bar chart to display the number of techniques under each tactic
+    st.write(f"Techniques used under {selected_tactic}")
+    fig_tactics = px.bar(techniques_count, x='name', y='count', title=f'Techniques under {selected_tactic}', 
+                         labels={'name': 'Technique', 'count': 'Count'}, text='count')
+    
+    # Optimize chart for responsiveness
+    fig_tactics.update_layout(autosize=True, margin=dict(l=50, r=50, t=50, b=50))
+    st.plotly_chart(fig_tactics)
+
+# Module 2: Techniques and Groups
+elif selected_module == "Techniques and Groups":
+    st.title("Techniques and Groups")
+    selected_group = st.sidebar.selectbox("Select Group", df_techniques_and_groups['source name'].unique())
+    
+    # Use Pandas to filter data based on the selected group
+    filtered_groups_data = df_techniques_and_groups[df_techniques_and_groups['source name'] == selected_group]
+    
+    # Aggregate data
+    techniques_per_group = filtered_groups_data.groupby('target name').size().reset_index(name='count')
+    
+    # Use Plotly to create a bar chart to display techniques used by the selected group
+    st.write(f"Techniques used by {selected_group}")
+    fig_groups = px.bar(techniques_per_group, x='target name', y='count', title=f'Techniques used by {selected_group}', 
+                        labels={'target name': 'Techniques', 'count': 'Count'}, text='count')
+    
+    # Optimize chart for responsiveness
+    fig_groups.update_layout(autosize=True, margin=dict(l=50, r=50, t=50, b=50))
+    st.plotly_chart(fig_groups)
+
+# Module 3: Techniques and Software
+elif selected_module == "Techniques and Software":
+    st.title("Techniques and Software")
+    selected_software = st.sidebar.selectbox("Select Software", df_techniques_and_software['name_software'].unique())
+    
+    # Use Pandas to filter the data based on the selected software
+    filtered_software_data = df_techniques_and_software[df_techniques_and_software['name_software'] == selected_software]
+    
+    # Aggregate data
+    techniques_per_software = filtered_software_data.groupby('name_technique').size().reset_index(name='count')
+    
+    # Use Plotly to create a bubble chart for techniques supported by the selected software
+    st.write(f"Techniques supported by {selected_software}")
+    fig_software = px.scatter(techniques_per_software, x='name_technique', y='count', size='count', title=f'Techniques supported by {selected_software}', 
+                              labels={'name_technique': 'Technique', 'count': 'Count'}, text='count')
+    
+    # Optimize chart for responsiveness
+    fig_software.update_layout(autosize=True, margin=dict(l=50, r=50, t=50, b=50))
+    st.plotly_chart(fig_software)
+
+# Sidebar footer
+st.sidebar.markdown("### Explore specific aspects of the MITRE ATT&CK dataset by selecting a module.")
